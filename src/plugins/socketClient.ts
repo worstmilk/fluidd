@@ -20,6 +20,7 @@ export class WebSocketClient {
   connection: WebSocket | null = null
   reconnectEnabled = false
   reconnectInterval = 1000
+  updateInterval = 1000
   allowedReconnectAttempts = 3
   reconnectCount = 0
   logPrefix = '[WEBSOCKET]'
@@ -33,6 +34,7 @@ export class WebSocketClient {
     this.reconnectEnabled = options.reconnectEnabled || false
     this.reconnectInterval = options.reconnectInterval || 1000
     this.store = options.store ? options.store : null
+    this.updateInterval = options.updateInterval || 1000
   }
 
   pong () {
@@ -169,14 +171,14 @@ export class WebSocketClient {
                   }
                 }
 
-                const timestamp = eventtime ? eventtime * 1000 : Date.now()
+                const timestamp = eventtime ? eventtime * this.updateInterval : Date.now()
 
                 this.cache = (!this.cache)
                   ? { timestamp, params }
                   : { timestamp: this.cache.timestamp, params: deepMerge(this.cache.params, params, { arrayMerge: (_, y) => y }) }
 
                 // If there's a second or more difference, flush the cache.
-                if (timestamp - this.cache.timestamp >= 1000) {
+                if (timestamp - this.cache.timestamp >= this.updateInterval) {
                   if (this.store) this.store.dispatch('socket/' + camelCase(d.method), this.cache.params)
                   this.cache = { timestamp, params: {} }
                 }
